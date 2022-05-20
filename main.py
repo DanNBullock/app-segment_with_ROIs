@@ -44,7 +44,7 @@ with open('config.json') as config_json:
 
 tractName=config['tractName']
 
-availableROIs=os.path.join(config['availableROIs'],'*.nii.gz')
+availableROIs=glob(os.path.join(config['availableROIs'],'*.nii.gz'))
 
 segRequests=config['segRequests']
 #example requests on single lines:
@@ -66,12 +66,13 @@ for iRequests in splitRequests:
     #better not have a space at the end...?
     includeVec.append(currentRequest[spaceLocations[-1]:])
     #whatever is in the middle I guess is the operation specification
-    operationsVec=currentRequest[spaceLocations[0]:spaceLocations[-1]].strip()
+    operationsVec.append(currentRequest[spaceLocations[0]:spaceLocations[-1]].strip())
 
 #get just the names
-justROInames=[os.path.basename(iROI) for iROI in availableROIs]
+justROInames=[os.path.basename(iROI).replace('.nii.gz','') for iROI in availableROIs]
 #now clean, modify, and validate the request entry components
 for iRequests in range(len(splitRequests)):
+    print(splitRequests[iRequests])
     #ROI
     #determine if the ROI is available
     #if they just entered a number...
@@ -81,7 +82,7 @@ for iRequests in range(len(splitRequests)):
         #if there is a single match
         if len(np.where(roiBoolVec)[0])==1:
             #change the name to the returned ROI
-            roisVec[iRequests]=availableROIs[np.where(roiBoolVec)[0]]
+            roisVec[iRequests]=availableROIs[np.where(roiBoolVec)[0][0]]
         else:
             raise ValueError('Input numeric ROI specification for request ' + str(iRequests) +' could not be mapped to an avaialble ROI.')
     #otherwise, I guess it's a string of some sort        
@@ -90,14 +91,14 @@ for iRequests in range(len(splitRequests)):
         matchBool=[roisVec[iRequests].lower()==iROI.lower() for iROI in justROInames]
         if len(np.where(matchBool)[0])==1:
             #change the name to the returned ROI
-            roisVec[iRequests]=availableROIs[np.where(matchBool)[0]]
+            roisVec[iRequests]=availableROIs[np.where(matchBool)[0][0]]
         else:
             raise ValueError('Input ROI specification for request ' + str(iRequests) +' could not be mapped to an avaialble ROI.')
 
     #INCLUDE
     #super overly broad inference as to what constitutes a "keep"-type operation
     #everything else is assumed to be a not
-    includeVec[iRequests]=includeVec[iRequests].lower() in ['true', '1', 'keep', 'and', 'include', 'yes']
+    includeVec[iRequests]=includeVec[iRequests].lower().strip() in ['true', '1', 'keep', 'and', 'include', 'yes']
     
     #OPERATIONS
     currentRequestedOperation=operationsVec[iRequests]
@@ -115,15 +116,15 @@ for iRequests in range(len(splitRequests)):
     #MAKE SURE THESE ARE IN THE RIGHT ORDER
     operationCheckList=[["any"], ["all"],eitherList,bothList]
     #now run across them and check against what was entered
-    validOperationLocation=[currentRequestedOperation in iLists for iLists in operationCheckList]
+    validOperationLocation=[currentRequestedOperation.strip() in iLists for iLists in operationCheckList]
     if np.any(validOperationLocation):
-        operationsVec[iRequests]=validOperationList[np.where(validOperationLocation)[0]]
+        operationsVec[iRequests]=validOperationList[np.where(validOperationLocation)[0][0]]
     else:
         raise ValueError('Input operation specification for request ' + str(iRequests) +' could not be mapped to an avaialble ROI.')
 
 #just for fun we can put these in a pandas dataframe, print its contents to the console
 #and save it down as a csv
-segCommandsDF=pd.Dataframe(columns=['roisVec','operationsVec','includeVec'])
+segCommandsDF=pd.DataFrame(columns=['roisVec','operationsVec','includeVec'])
 segCommandsDF['roisVec']=roisVec
 segCommandsDF['operationsVec']=operationsVec
 segCommandsDF['includeVec']=includeVec
@@ -162,7 +163,7 @@ print(segCommandsDF)
 #pretty sure it is equivalent, but not 100%, previous testing suggested it was,
 #and also that the precompute phases led to a speedup floor (i.e. min seg time)
 #that was ~ 2 min for ~ 1 mil .5 mm sampled streamlines
-boolOut=wmaPyTools.roiTools.segmentTractMultiROI_fast(streamlines, roisVecIn, includeVec, operationsVec)
+boolOut=wmaPyTools.segmentationTools.segmentTractMultiROI_fast(streamlines, roisVecIn, includeVec, operationsVec)
 
 #turn the boolvec into a wmc
 outWmc=wmaPyTools.streamlineTools.updateClassification(boolOut,tractName,existingClassification=None)
@@ -173,6 +174,9 @@ if not os.path.exists(outDir):
 
 from scipy.io import savemat
 #save down the classification structure
+outDir='output'
+if not os.path.exists(os.path.join(outDir,'wmc')):
+    os.makedirs(os.path.join(outDir,'wmc'))
 savemat(os.path.join(outDir,'wmc','classification.mat'),outWmc)
 #hold off on saving the tck down for now
 #it's unclear what can or should be done about the naming conventions.
