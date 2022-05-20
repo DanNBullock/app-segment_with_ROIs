@@ -43,6 +43,7 @@ with open('config.json') as config_json:
 	config = json.load(config_json)
 
 tractName=config['tractName']
+
 availableROIs=os.path.join(config['availableROIs'],'*.nii.gz')
 
 segRequests=config['segRequests']
@@ -111,7 +112,8 @@ for iRequests in range(len(splitRequests)):
     #actually kind of ambiguous with "endpoint" because may be they want only one, which isn't currently implemented
     eitherList=['either_end','either end','either_ends','either ends','either','eitherends','eitherend','endpoint']
     #now create a list to check against
-    operationCheckList=[["any"], ["all"],bothList,eitherList]
+    #MAKE SURE THESE ARE IN THE RIGHT ORDER
+    operationCheckList=[["any"], ["all"],eitherList,bothList]
     #now run across them and check against what was entered
     validOperationLocation=[currentRequestedOperation in iLists for iLists in operationCheckList]
     if np.any(validOperationLocation):
@@ -119,12 +121,60 @@ for iRequests in range(len(splitRequests)):
     else:
         raise ValueError('Input operation specification for request ' + str(iRequests) +' could not be mapped to an avaialble ROI.')
 
+#just for fun we can put these in a pandas dataframe, print its contents to the console
+#and save it down as a csv
+segCommandsDF=pd.Dataframe(columns=['roisVec','operationsVec','includeVec'])
+segCommandsDF['roisVec']=roisVec
+segCommandsDF['operationsVec']=operationsVec
+segCommandsDF['includeVec']=includeVec
 
-
-
+#load the tractogram
 tractogramIn=nib.streamlines.load(config['tractogram'])
 streamlines=tractogramIn.streamlines
 
+#laod the rois
+roisVecIn=[nib.load(iROI) for iROI in roisVec]
 
+#I don't think they are passed as bool masks, but rather as float
+#all the same, a simple sum should work
+roiVolSums=[np.sum(iROI.get_fdata()) for iROI in roisVecIn]
+#now add that as a column
+segCommandsDF['roiVoxelTotal']=roiVolSums
 
-boolOut=segmentTractMultiROI_fast(streamlines, roisVec, includeVec, operationsVec)
+#take this opportunity to "zhoosh" up the name
+if tractName.lower() in [None, 'none', 'default', '']:
+    print('No unique/informative name entered.\nMerging criteria to form name')
+    #reobtain the roiNames (these may have changed via the earlier matching process)
+    roiNames=[os.path.basename(iROI) for iROI in roisVec]
+    #translate the includeVec
+    includeMeanings=['AND' if iInclude  else 'NOT' for iInclude in includeVec]          
+    #zip it up into a list of lists
+    zippedSegCommands=zip(includeMeanings,roiNames,operationsVec)
+    #now for the big join, -- between criteria, _ between operation components
+    tractName='--'.join(['_'.join(iCriterion for iCriterion in zippedSegCommands)])          
+    
+
+print('Begnning *fast* segmentation of '+ str(len(streamlines)) +' to obtain \n'+ tractName+ '\nwith the following commands:' )
+print(segCommandsDF)
+
+#do the fast segmentation
+#all kinds of tricks in there to make it go faster than standard dipy segmentation
+#pretty sure it is equivalent, but not 100%, previous testing suggested it was,
+#and also that the precompute phases led to a speedup floor (i.e. min seg time)
+#that was ~ 2 min for ~ 1 mil .5 mm sampled streamlines
+boolOut=wmaPyTools.roiTools.segmentTractMultiROI_fast(streamlines, roisVecIn, includeVec, operationsVec)
+
+#turn the boolvec into a wmc
+outWmc=wmaPyTools.streamlineTools.updateClassification(boolOut,tractName,existingClassification=None)
+
+outDir='output'
+if not os.path.exists(outDir):
+    os.makedirs(outDir)
+
+from scipy.io import savemat
+#save down the classification structure
+savemat(os.path.join(outDir,'wmc','classification.mat'),outWmc)
+#hold off on saving the tck down for now
+#it's unclear what can or should be done about the naming conventions.
+#consider maybe a tcks https://brainlife.io/datatype/5dcf0047c4ae28d7f2298f48
+#wmaPyTools.streamlineTools.stubbornSaveTractogram(streamlines,os.path.join(outDir,tractName+'.tck'))
