@@ -194,9 +194,9 @@ if not os.path.exists(outDir):
 from scipy.io import savemat
 #save down the classification structure
 outDir='output'
-if not os.path.exists(os.path.join(outDir,'wmc')):
-    os.makedirs(os.path.join(outDir,'wmc'))
-savemat(os.path.join(outDir,'wmc','classification.mat'),outWmc)
+if not os.path.exists(os.path.join(outDir)):
+    os.makedirs(os.path.join(outDir))
+savemat(os.path.join(outDir,'classification.mat'),outWmc)
 #hold off on saving the tck down for now
 #it's unclear what can or should be done about the naming conventions.
 #consider maybe a tcks https://brainlife.io/datatype/5dcf0047c4ae28d7f2298f48
