@@ -199,7 +199,7 @@ from scipy.io import savemat
 outDir='output'
 if not os.path.exists(os.path.join(outDir)):
     os.makedirs(os.path.join(outDir))
-savemat(os.path.join(outDir,'classification.mat'),outWmc)
+savemat(os.path.join('wmc','classification.mat'),{ "classification": {"names": outWmc['names'], "index": outWmc['index'] }})
 #hold off on saving the tck down for now
 #it's unclear what can or should be done about the naming conventions.
 #consider maybe a tcks https://brainlife.io/datatype/5dcf0047c4ae28d7f2298f48
