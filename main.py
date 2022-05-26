@@ -72,6 +72,9 @@ for tractIterator,iTractSegs in enumerate(tractRequests):
     tractName=tractNames[tractIterator]
 
     splitRequests=iTractSegs
+    #remove empty requests
+    splitRequests=list(filter(('').__ne__, splitRequests))
+    
     roisVec=[]
     includeVec=[]
     operationsVec=[]
