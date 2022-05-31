@@ -2,14 +2,5 @@
 #PBS -l nodes=1:ppn=16
 #PBS -l walltime=02:00:00
 
-# Copyright (c) 2020 brainlife.io at University of Texas at Austin and Indiana University
-# 
-# This is the main file run by the brainlife.io orchestration system
-#
-# Author: Franco Pestilli
-
-# make output directory
-mkdir -p out_dir
-
 # run the actual python code
 singularity exec docker://brainlife/dipy:latest python3 main.py
