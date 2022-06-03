@@ -1,4 +1,6 @@
 {
-    "t1": "t1.nii.gz",
-    "outres": "1 1 1"
+    "availableROIs": "rois",
+    "tractogram": "track.tck",
+    "segRequests": "sphere_6 any true\nfullCutIC11_ROI_left any true",
+    "tractName": "testSeg"
 }
