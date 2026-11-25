@@ -3,6 +3,45 @@
 
 # [app name]
 
+<!-- brainlife-app:begin (generated from the App manifest; edit the manifest, not this block) -->
+
+> **Segments one or more tracts from a tractogram by applying user-written ROI inclusion and exclusion criteria (any, all, either end, both ends) with wma_pyTools, and outputs a WMC.**
+
+Each request line names an ROI from the input ROI collection, an operation (any, all, either_end, both_end) and whether streamlines must or must not meet it; the criteria are combined to select streamlines for each named tract, and the result is saved as a white matter classification. Use it for custom ROI-based bundle dissection. The ROIs must be in the same space as the tractogram. The README is an unfilled template.
+
+| | |
+|---|---|
+| 📥 **Inputs** | `neuro/track/tck` · `neuro/rois` |
+| 📤 **Outputs** | `neuro/wmc` |
+| 🐳 **Container** | `brainlife/dipy:latest` |
+| ⚙️ **Resources** | 8 CPUs |
+| 🔗 **Run it** | [doi.org/10.25663/brainlife.app.631](https://doi.org/10.25663/brainlife.app.631) |
+
+#### 📥 Inputs
+
+| Input | Datatype | Required | Description |
+|---|---|---|---|
+| `tractogram` | `neuro/track/tck` | yes | Whole-brain tractogram (.tck). |
+| `ROIs` | `neuro/rois` | yes | Collection of ROI NIfTI files referenced by name in segRequests. |
+
+#### 📤 Outputs
+
+| Output | Datatype | Description |
+|---|---|---|
+| `output` | `neuro/wmc` | White matter classification (classification.mat) with the requested tracts. |
+
+<details>
+<summary><b>⚙️ Parameters</b> (2)</summary>
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `tractNames` | string |  | What to name the requested tract(s). BE SURE TO ENTER MULTIPLE NAMES IF YOU'RE REQUESTING MULTIPLE TRACTS |
+| `segRequests` | string |  | The performance of a segmentation is based on the application of some number of segmentation criteria. Each segmentation criteria is composed of the following: 1. ROI name: the name of the specific, desired ROI that is found in the input ROI datatype. 2. The requested operation, which may be one of the following: > "any" : any point is within tolerance from ROI. The "default" operation. > "all" : all points are within tolerance from ROI. > "either_end" : either of the end-points is within tolerance from ROI > "both_end" : both end points are within tolerance from ROI. 3. Whether or not the streamlines meeting the operation criteria should be retained or excluded. True = keep, False = exclude. You can perform a single segmentation or multiple segmentations with this app. To perform a **single segmentation** (e.g. to obtain one tract), each criterion should be entered on a separate line. Each component of a criterion should be separated by a space. As an example: endpoint_ROI1 either_end true exclusion_ROI1 any false waypoint_ROI1 any true To perform a **multi segmentation** (e.g. to obtain multiple tracts), each set of criteria (for distinct tracts) should be on separate lines. Within each line (and thus for each tract) each individual criterion should separated by a semicolon (;). Each component of a criterion should be separated by a space. As an example: endpoint_ROI1 either_end true;exclusion_ROI1 any false;waypoint_ROI1 any true endpoint_ROI2 either_end true;exclusion_ROI2 any false;waypoint_ROI2 any true endpoint_ROI3 either_end true;exclusion_ROI3 any false;waypoint_ROI3 any true |
+
+</details>
+
+<!-- brainlife-app:end -->
+
 ## Overview description
 
 This is where the description of the app goes.  Provide quick summaries of:
